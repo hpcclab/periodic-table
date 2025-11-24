@@ -276,10 +276,6 @@ const HeatmapTable = () => {
           }}
         >
           <div className="tooltip-location">{tooltip.content}</div>
-          <div className="tooltip-metric">
-            <span className="tooltip-metric-name">{tooltip.metric}:</span>
-            <span className="tooltip-value">{tooltip.value}</span>
-          </div>
         </div>
       )}
     </div>
