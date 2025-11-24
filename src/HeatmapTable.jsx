@@ -3,6 +3,7 @@ import './HeatmapTable.css';
 
 const HeatmapTable = () => {
   const [selectedMetric, setSelectedMetric] = useState('Latency');
+  const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, content: '' });
 
   // Define tiers and abstraction levels
   const tiers = [
@@ -176,8 +177,8 @@ const HeatmapTable = () => {
   return (
     <div className="heatmap-container">
       <div className="header-section">
-        <h1 className="title">Computing Continuum Analysis</h1>
-        <p className="subtitle">Tier and Abstraction Level Visualization</p>
+        <h1 className="title">The Hitchhiker's Guide to Computing</h1>
+          {/*<p className="subtitle">Tier and Abstraction Level Visualization</p>*/}
 
         <div className="metric-selector">
           <label htmlFor="metric-dropdown">Select Metric:</label>
@@ -200,7 +201,10 @@ const HeatmapTable = () => {
         <table className="heatmap-table">
           <thead>
             <tr>
-              <th className="corner-cell">Level \ Tier</th>
+              <th className="corner-cell">
+                <span className="corner-level">Level</span>
+                <span className="corner-tier">Tier</span>
+              </th>
               {tiers.map((tier) => (
                 <th key={tier.id} className="tier-header">
                   <div className="tier-id">{tier.id}</div>
@@ -224,7 +228,20 @@ const HeatmapTable = () => {
                       key={`${level.id}-${tier.id}`}
                       className="data-cell"
                       style={{ backgroundColor: color }}
-                      title={`${tier.name} - ${level.name}\n${selectedMetric}: ${value}`}
+                      onMouseEnter={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setTooltip({
+                          visible: true,
+                          x: rect.left + rect.width / 2,
+                          y: rect.top - 10,
+                          content: `${tier.name} - ${level.name}`,
+                          metric: selectedMetric,
+                          value: value
+                        });
+                      }}
+                      onMouseLeave={() => {
+                        setTooltip({ visible: false, x: 0, y: 0, content: '', metric: '', value: 0 });
+                      }}
                     >
                     </td>
                   );
@@ -246,6 +263,26 @@ const HeatmapTable = () => {
           <div className="gradient-bar"></div>
         </div>
       </div>
+
+      <footer className="footer">
+        <p>&copy; {new Date().getFullYear()} All rights reserved.</p>
+      </footer>
+
+      {tooltip.visible && (
+        <div
+          className="custom-tooltip"
+          style={{
+            left: `${tooltip.x}px`,
+            top: `${tooltip.y}px`
+          }}
+        >
+          <div className="tooltip-location">{tooltip.content}</div>
+          <div className="tooltip-metric">
+            <span className="tooltip-metric-name">{tooltip.metric}:</span>
+            <span className="tooltip-value">{tooltip.value}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

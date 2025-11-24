@@ -1,7 +1,7 @@
 .heatmap-container {
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.5rem;
   background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
   min-height: 100vh;
   color: #e0e0e0;
@@ -10,13 +10,13 @@
 /* Header Section */
 .header-section {
   text-align: center;
-  margin-bottom: 3rem;
-  padding: 2rem 0;
+  margin-bottom: 2rem;
+  padding: 1.5rem 0;
   border-bottom: 2px solid rgba(100, 200, 255, 0.2);
 }
 
 .title {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
   margin: 0 0 0.5rem 0;
   background: linear-gradient(135deg, #60d5fa 0%, #a0f0b0 100%);
@@ -27,7 +27,7 @@
 }
 
 .subtitle {
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: #a0a0b0;
   margin: 0;
   font-weight: 300;
@@ -35,7 +35,7 @@
 
 /* Metric Selector */
 .metric-selector {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -43,14 +43,14 @@
 }
 
 .metric-selector label {
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 500;
   color: #b0b0c0;
 }
 
 .metric-dropdown {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
   border: 2px solid rgba(100, 200, 255, 0.3);
   border-radius: 8px;
   background-color: #1e1e2e;
@@ -58,7 +58,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   outline: none;
-  min-width: 280px;
+  min-width: 250px;
   font-weight: 500;
 }
 
@@ -83,12 +83,18 @@
   overflow-x: auto;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.table-wrapper table {
+  margin: 0 auto;
 }
 
 /* Heatmap Table */
 .heatmap-table {
-  width: 100%;
+  width: auto;
   border-collapse: separate;
   border-spacing: 0;
   background-color: #16161e;
@@ -98,25 +104,49 @@
 
 /* Corner Cell */
 .corner-cell {
-  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
+  background:
+    linear-gradient(to top right,
+      transparent 0%,
+      transparent calc(50% - 1px),
+      rgba(100, 200, 255, 0.3) calc(50% - 1px),
+      rgba(100, 200, 255, 0.3) calc(50% + 1px),
+      transparent calc(50% + 1px),
+      transparent 100%),
+    linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
   color: #909090;
   font-weight: 600;
-  padding: 1.2rem;
-  text-align: center;
+  padding: 0.8rem;
+  position: relative;
   border-right: 2px solid rgba(100, 200, 255, 0.2);
   border-bottom: 2px solid rgba(100, 200, 255, 0.2);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   position: sticky;
   left: 0;
   z-index: 10;
+  min-width: 300px;
+  max-width: 300px;
+}
+
+.corner-level {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.8rem;
+  color: #a0f0b0;
+}
+
+.corner-tier {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.8rem;
+  color: #60d5fa;
 }
 
 /* Tier Headers */
 .tier-header {
   background: linear-gradient(135deg, #1e1e3e 0%, #2a2a4e 100%);
-  padding: 1.2rem;
+  padding: 1rem;
   text-align: center;
   border-bottom: 2px solid rgba(100, 200, 255, 0.2);
   font-weight: 600;
@@ -139,25 +169,26 @@
 /* Level Headers */
 .level-header {
   background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
-  padding: 1rem 1.2rem;
-  text-align: left;
+  padding: 0.7rem;
+  text-align: center;
   border-right: 2px solid rgba(100, 200, 255, 0.2);
   font-weight: 600;
   position: sticky;
   left: 0;
   z-index: 5;
-  min-width: 280px;
+  min-width: 300px;
+  max-width: 300px;
 }
 
 .level-id {
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: #a0f0b0;
   font-weight: 700;
   margin-bottom: 0.3rem;
 }
 
 .level-name {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #909090;
   font-weight: 400;
   line-height: 1.3;
@@ -165,14 +196,14 @@
 
 /* Data Cells */
 .data-cell {
-  padding: 1.5rem;
+  padding: 1rem;
   text-align: center;
   transition: all 0.3s ease;
   position: relative;
   border: 1px solid rgba(0, 0, 0, 0.2);
   cursor: pointer;
-  min-width: 120px;
-  height: 80px;
+  min-width: 150px;
+  height: 60px;
 }
 
 .data-cell:hover {
@@ -186,37 +217,37 @@
 /* Legend */
 .legend {
   text-align: center;
-  padding: 1.5rem;
+  padding: 1rem;
   background-color: #1e1e2e;
   border-radius: 8px;
   border: 1px solid rgba(100, 200, 255, 0.2);
 }
 
 .legend-title {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #b0b0c0;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .legend-gradient {
-  max-width: 500px;
+  max-width: 400px;
   margin: 0 auto;
 }
 
 .legend-labels {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.8rem;
   color: #909090;
   font-weight: 500;
 }
 
 .gradient-bar {
-  height: 30px;
+  height: 24px;
   background: linear-gradient(
     to right,
     rgb(15, 25, 60),
@@ -243,12 +274,16 @@
   .tier-header,
   .level-header,
   .data-cell {
-    padding: 1rem;
+    padding: 0.9rem;
+  }
+
+  .tier-header {
+    min-width: 130px;
   }
 
   .data-cell {
-    min-width: 100px;
-    height: 70px;
+    min-width: 130px;
+    height: 60px;
   }
 }
 
@@ -277,16 +312,26 @@
   .tier-header,
   .level-header,
   .data-cell {
-    padding: 0.75rem;
+    padding: 0.7rem;
+  }
+
+  .tier-header {
+    min-width: 110px;
   }
 
   .data-cell {
-    min-width: 80px;
+    min-width: 110px;
     height: 60px;
   }
 
   .level-header {
-    min-width: 200px;
+    min-width: 240px;
+    max-width: 240px;
+  }
+
+  .corner-cell {
+    min-width: 240px;
+    max-width: 240px;
   }
 
   .tier-id,
@@ -298,6 +343,75 @@
   .level-name {
     font-size: 0.75rem;
   }
+}
+
+/* Custom Tooltip */
+.custom-tooltip {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  background: linear-gradient(135deg, #1e1e3e 0%, #2a2a4e 100%);
+  border: 2px solid rgba(100, 200, 255, 0.4);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  animation: tooltipFadeIn 0.2s ease-out;
+  min-width: 200px;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -100%) translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%) translateY(0);
+  }
+}
+
+.tooltip-location {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e0e0e0;
+  margin-bottom: 0.4rem;
+  text-align: center;
+}
+
+.tooltip-metric {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.tooltip-metric-name {
+  color: #a0a0b0;
+  font-weight: 500;
+}
+
+.tooltip-value {
+  color: #60d5fa;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 2rem 0;
+  margin-top: 2rem;
+  border-top: 1px solid rgba(100, 200, 255, 0.2);
+}
+
+.footer p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #909090;
+  font-weight: 400;
 }
 
 /* Scrollbar Styling for Dark Mode */
