@@ -186,8 +186,7 @@ const HeatmapTable = () => {
             id="metric-dropdown"
             value={selectedMetric}
             onChange={(e) => setSelectedMetric(e.target.value)}
-            className="metric-dropdown"
-          >
+            className="metric-dropdown">
             {metrics.map((metric) => (
               <option key={metric} value={metric}>
                 {metric}
