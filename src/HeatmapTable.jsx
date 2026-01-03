@@ -7,6 +7,7 @@ const STORAGE_KEY = 'heatmap-containers';
 const HeatmapTable = () => {
     const [selectedMetric, setSelectedMetric] = useState('Latency');
     const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, content: '' });
+    const [showGridLines, setShowGridLines] = useState(true);
     const [containers, setContainers] = useState(() => {
         const saved = localStorage.getItem(STORAGE_KEY);
         return saved ? JSON.parse(saved) : [];
@@ -40,123 +41,155 @@ const HeatmapTable = () => {
 
     // Metric data: each metric has values for each cell [row][col]
     // Values range from 0-100 for heatmap intensity
+    // Rows: L1-L7 (Hardware to Agents), Cols: T1-T4 (Devices to Cloud)
     const metricsData = {
+        // Latency: Higher value = higher latency (worse)
+        // Sharp contrast: Devices very low, Cloud very high
+        // L4/L7 have notable spikes due to abstraction overhead
         'Latency': [
-            [15, 30, 50, 85],
-            [20, 35, 55, 88],
-            [25, 40, 60, 90],
-            [30, 45, 65, 92],
-            [35, 50, 70, 94],
-            [40, 55, 75, 96],
-            [45, 60, 80, 98]
+            [5, 20, 50, 80],    // L1: Hardware - minimal overhead
+            [8, 25, 55, 85],    // L2: Infrastructure
+            [15, 40, 65, 90],   // L3: Platform
+            [45, 60, 80, 95],   // L4: Runtime - BIG spike (abstraction overhead)
+            [20, 35, 60, 82],   // L5: Programming Models - dips back down
+            [35, 50, 70, 88],   // L6: Application
+            [65, 78, 90, 98]    // L7: Agents - highest (orchestration latency)
         ],
+        // Throughput: Higher value = better throughput
+        // Peak at L2-L3 cloud; sharp drop at L7
         'Throughput': [
-            [25, 45, 65, 95],
-            [30, 50, 70, 96],
-            [28, 48, 68, 94],
-            [26, 46, 66, 92],
-            [24, 44, 64, 90],
-            [22, 42, 62, 88],
-            [20, 40, 60, 85]
+            [15, 35, 60, 85],   // L1: Hardware
+            [25, 55, 82, 98],   // L2: Infrastructure - peak zone
+            [30, 60, 88, 99],   // L3: Platform - peak in cloud
+            [25, 50, 75, 92],   // L4: Runtime
+            [20, 42, 65, 85],   // L5: Programming Models
+            [15, 32, 52, 72],   // L6: Application - dropping
+            [8, 20, 38, 55]     // L7: Agents - significant drop
         ],
+        // Availability: Higher value = better availability
+        // Peak at L3-L4 cloud; L7 drops notably
         'Availability': [
-            [20, 40, 60, 95],
-            [25, 45, 65, 96],
-            [30, 50, 70, 97],
-            [32, 52, 72, 97],
-            [34, 54, 74, 98],
-            [36, 56, 76, 98],
-            [38, 58, 78, 99]
+            [25, 40, 55, 78],   // L1: Hardware
+            [35, 55, 75, 92],   // L2: Infrastructure
+            [42, 65, 85, 99],   // L3: Platform - peak
+            [45, 68, 88, 99],   // L4: Runtime - peak
+            [38, 58, 78, 95],   // L5: Programming Models
+            [30, 48, 68, 88],   // L6: Application - complexity reduces
+            [20, 35, 52, 72]    // L7: Agents - notable drop
         ],
+        // Cost: Higher value = higher cost
+        // L1 expensive (operational), L5 cheap (serverless), cloud L3+ expensive
         'Cost': [
-            [15, 35, 60, 95],
-            [18, 38, 62, 94],
-            [20, 40, 64, 93],
-            [22, 42, 66, 92],
-            [24, 44, 68, 91],
-            [26, 46, 70, 90],
-            [28, 48, 72, 88]
+            [85, 70, 55, 45],   // L1: Hardware - HIGH operational cost
+            [72, 62, 68, 80],   // L2: Infrastructure
+            [35, 55, 75, 95],   // L3: Platform - cloud gets expensive
+            [28, 42, 58, 78],   // L4: Runtime
+            [15, 25, 38, 55],   // L5: Programming Models - CHEAP (serverless)
+            [22, 35, 50, 68],   // L6: Application
+            [40, 55, 70, 85]    // L7: Agents - API costs rise
         ],
+        // Elasticity: Higher value = better elasticity
+        // Devices near zero; sharp peak at L4 cloud
         'Elasticity': [
-            [10, 30, 60, 98],
-            [12, 32, 62, 97],
-            [14, 34, 64, 96],
-            [16, 36, 66, 95],
-            [18, 38, 68, 94],
-            [20, 40, 70, 93],
-            [22, 42, 72, 92]
+            [2, 8, 25, 50],     // L1: Hardware - almost none
+            [5, 20, 48, 78],    // L2: Infrastructure
+            [8, 35, 70, 95],    // L3: Platform
+            [12, 50, 85, 99],   // L4: Runtime - PEAK (Kubernetes)
+            [15, 48, 80, 98],   // L5: Programming Models - FaaS high
+            [8, 30, 58, 82],    // L6: Application - drops
+            [5, 22, 45, 70]     // L7: Agents - limited by orchestration
         ],
+        // Reliability: Higher value = better reliability
+        // Peak at L3-L4 cloud; L7 notably lower
         'Reliability': [
-            [25, 45, 70, 98],
-            [30, 50, 72, 97],
-            [32, 52, 74, 96],
-            [34, 54, 76, 96],
-            [36, 56, 78, 95],
-            [38, 58, 80, 94],
-            [40, 60, 82, 93]
+            [35, 45, 58, 75],   // L1: Hardware
+            [48, 62, 78, 92],   // L2: Infrastructure
+            [55, 75, 90, 98],   // L3: Platform - peak
+            [60, 78, 92, 99],   // L4: Runtime - peak
+            [50, 68, 82, 94],   // L5: Programming Models
+            [40, 55, 70, 85],   // L6: Application
+            [25, 38, 55, 68]    // L7: Agents - less proven
         ],
+        // Mobility: Higher value = better mobility
+        // Devices very high; sharp drop to cloud at L1-L3
+        // Higher levels more uniform (location-independent)
         'Mobility': [
-            [95, 75, 50, 15],
-            [92, 72, 48, 18],
-            [90, 70, 46, 20],
-            [88, 68, 44, 22],
-            [86, 66, 42, 24],
-            [84, 64, 40, 26],
-            [82, 62, 38, 28]
+            [98, 55, 25, 10],   // L1: Hardware - sharp contrast
+            [95, 50, 30, 15],   // L2: Infrastructure
+            [88, 55, 40, 28],   // L3: Platform
+            [92, 68, 52, 42],   // L4: Runtime - containers more portable
+            [82, 75, 68, 60],   // L5: Programming Models - flattening
+            [75, 72, 70, 68],   // L6: Application - nearly flat
+            [70, 68, 66, 65]    // L7: Agents - very flat (API-based)
         ],
+        // Distributedness: Higher value = more distributed
+        // Devices isolated; sharp increase to cloud; L4 peaks
         'Distributedness': [
-            [20, 45, 70, 95],
-            [22, 47, 72, 94],
-            [24, 49, 74, 93],
-            [26, 51, 76, 92],
-            [28, 53, 78, 91],
-            [30, 55, 80, 90],
-            [32, 57, 82, 88]
+            [5, 30, 62, 85],    // L1: Hardware
+            [10, 45, 78, 95],   // L2: Infrastructure
+            [15, 58, 88, 98],   // L3: Platform - microservices
+            [22, 68, 92, 99],   // L4: Runtime - peak (orchestration)
+            [28, 60, 82, 95],   // L5: Programming Models
+            [18, 48, 70, 88],   // L6: Application
+            [35, 58, 78, 92]    // L7: Agents - multi-agent boost
         ],
+        // Democratization: Higher value = easier to use
+        // Primarily vertical - strong increase with abstraction
+        // L7 peaks dramatically; L1 very low across all tiers
         'Democratization (Ease of use & Programming)': [
-            [15, 20, 25, 30],
-            [25, 30, 35, 40],
-            [35, 40, 45, 50],
-            [45, 50, 55, 60],
-            [60, 65, 70, 75],
-            [75, 80, 85, 90],
-            [88, 90, 92, 95]
+            [5, 8, 12, 18],     // L1: Hardware - very difficult
+            [12, 18, 25, 32],   // L2: Infrastructure
+            [25, 35, 45, 55],   // L3: Platform
+            [38, 48, 58, 68],   // L4: Runtime
+            [55, 65, 75, 82],   // L5: Programming Models
+            [75, 82, 88, 92],   // L6: Application - low-code
+            [92, 95, 97, 99]    // L7: Agents - natural language peak
         ],
+        // Governance: Higher value = better governance
+        // Peak at L3-L4 cloud; L7 has governance challenges
         'Governance': [
-            [25, 45, 65, 90],
-            [28, 48, 68, 91],
-            [30, 50, 70, 92],
-            [32, 52, 72, 93],
-            [34, 54, 74, 94],
-            [36, 56, 76, 95],
-            [38, 58, 78, 96]
+            [22, 35, 50, 72],   // L1: Hardware
+            [40, 55, 72, 88],   // L2: Infrastructure
+            [55, 72, 88, 98],   // L3: Platform - peak
+            [62, 78, 92, 99],   // L4: Runtime - peak
+            [48, 65, 80, 92],   // L5: Programming Models
+            [38, 52, 68, 82],   // L6: Application
+            [25, 38, 55, 70]    // L7: Agents - governance gaps
         ],
+        // AI-Friendliness: Higher value = more AI-friendly
+        // DRAMATIC spike at L5-L7; lower levels much lower
+        // Cloud always higher than devices
         'AI-Friendliness': [
-            [15, 35, 60, 95],
-            [18, 38, 62, 94],
-            [20, 40, 64, 93],
-            [22, 42, 66, 92],
-            [30, 50, 72, 96],
-            [35, 55, 75, 97],
-            [38, 58, 78, 95]
+            [40, 50, 58, 72],   // L1: Hardware - GPUs help cloud
+            [18, 28, 42, 62],   // L2: Infrastructure - low
+            [22, 35, 52, 75],   // L3: Platform
+            [35, 48, 65, 85],   // L4: Runtime
+            [68, 80, 90, 97],   // L5: Programming Models - BIG jump
+            [78, 88, 95, 99],   // L6: Application - AI APIs
+            [85, 92, 97, 99]    // L7: Agents - peak
         ],
+        // Sustainability: Higher value = more sustainable
+        // L4 peaks (utilization); L1-L2 lower; L7 drops (AI intensive)
         'Sustainability': [
-            [30, 50, 70, 95],
-            [32, 52, 72, 94],
-            [34, 54, 74, 93],
-            [36, 56, 76, 92],
-            [38, 58, 78, 91],
-            [40, 60, 80, 90],
-            [42, 62, 82, 88]
+            [38, 45, 55, 65],   // L1: Hardware
+            [32, 48, 62, 75],   // L2: Infrastructure
+            [50, 65, 80, 92],   // L3: Platform
+            [62, 78, 90, 98],   // L4: Runtime - peak utilization
+            [55, 70, 82, 92],   // L5: Programming Models
+            [45, 58, 70, 82],   // L6: Application
+            [28, 40, 52, 65]    // L7: Agents - AI workloads intensive
         ],
+        // Security & Trustworthiness: Higher value = better security
+        // Complex pattern: L3-L4 peak; devices have data sovereignty
+        // L7 notably lower (prompt injection risks)
         'Security & Trustworthiness': [
-            [85, 70, 50, 40],
-            [82, 68, 52, 42],
-            [80, 66, 54, 44],
-            [78, 64, 56, 46],
-            [76, 62, 58, 50],
-            [74, 60, 60, 55],
-            [72, 58, 62, 60]
+            [82, 50, 42, 38],   // L1: Hardware - device sovereignty vs cloud risk
+            [75, 58, 52, 48],   // L2: Infrastructure
+            [70, 72, 78, 85],   // L3: Platform - managed security good
+            [68, 70, 80, 88],   // L4: Runtime - container isolation
+            [60, 58, 68, 75],   // L5: Programming Models
+            [52, 48, 55, 62],   // L6: Application - attack surface
+            [30, 28, 35, 42]    // L7: Agents - LOW (emerging risks)
         ]
     };
 
@@ -339,6 +372,14 @@ const HeatmapTable = () => {
                             </option>
                         ))}
                     </select>
+                    <label className="grid-toggle">
+                        <input
+                            type="checkbox"
+                            checked={showGridLines}
+                            onChange={(e) => setShowGridLines(e.target.checked)}
+                        />
+                        Show Grid Lines
+                    </label>
                 </div>
             </div>
 
@@ -376,7 +417,7 @@ const HeatmapTable = () => {
                                     onDrop={handleDrop}
                                 >
                                     <canvas ref={canvasRef} className="gradient-canvas" />
-                                    <div className="data-grid-overlay">
+                                    <div className={`data-grid-overlay ${showGridLines ? 'show-grid' : 'hide-grid'}`}>
                                         {levels.map((lvl) => (
                                             tiers.map((tier) => (
                                                 <div
