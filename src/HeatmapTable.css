@@ -121,7 +121,7 @@
 .main-grid {
     display: grid;
     grid-template-columns: 300px repeat(5, 150px);
-    grid-template-rows: auto repeat(7, 60px);
+    grid-template-rows: repeat(7, 60px) auto;
     background-color: #16161e;
     border-radius: 12px;
     overflow: hidden;
@@ -144,10 +144,15 @@
     padding: 0.8rem;
     position: relative;
     border-right: 2px solid rgba(100, 200, 255, 0.2);
-    border-bottom: 2px solid rgba(100, 200, 255, 0.2);
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+/* Corner cell at bottom - border on top instead of bottom */
+.corner-cell-bottom {
+    border-top: 2px solid rgba(100, 200, 255, 0.2);
+    border-bottom: none;
 }
 
 .corner-level {
@@ -169,12 +174,17 @@
     background: linear-gradient(135deg, #1e1e3e 0%, #2a2a4e 100%);
     padding: 1rem;
     text-align: center;
-    border-bottom: 2px solid rgba(100, 200, 255, 0.2);
     font-weight: 600;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+}
+
+/* Tier headers at bottom - border on top instead of bottom */
+.tier-header-bottom {
+    border-top: 2px solid rgba(100, 200, 255, 0.2);
+    border-bottom: none;
 }
 
 .tier-id {
@@ -424,7 +434,7 @@
 
     .main-grid {
         grid-template-columns: 200px repeat(5, 100px);
-        grid-template-rows: auto repeat(7, 50px);
+        grid-template-rows: repeat(7, 50px) auto;
     }
 
     .tier-id,
