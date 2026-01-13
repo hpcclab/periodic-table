@@ -11,7 +11,9 @@ const ContainerSidebar = ({ containers, onAddContainer, onRemoveContainer }) => 
                 id: crypto.randomUUID(),
                 name: newName.trim(),
                 x: null,
-                y: null
+                y: null,
+                width: 0.15,  // 15% of data area width
+                height: 0.2  // 20% of data area height
             });
             setNewName('');
         }
@@ -24,14 +26,14 @@ const ContainerSidebar = ({ containers, onAddContainer, onRemoveContainer }) => 
 
     return (
         <div className="container-sidebar">
-            <h2 className="sidebar-title">Containers</h2>
+            <h2 className="sidebar-title">Solutions</h2>
 
             <form className="add-container-form" onSubmit={handleAdd}>
                 <input
                     type="text"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    placeholder="Container name"
+                    placeholder="Solution name"
                     className="container-name-input"
                 />
                 <button type="submit" className="add-container-btn">
@@ -41,7 +43,7 @@ const ContainerSidebar = ({ containers, onAddContainer, onRemoveContainer }) => 
 
             <div className="container-list">
                 {containers.length === 0 ? (
-                    <p className="empty-message">No containers yet. Add one above.</p>
+                    <p className="empty-message">No solutions yet. Add one above.</p>
                 ) : (
                     containers.map((container) => (
                         <div
@@ -59,7 +61,7 @@ const ContainerSidebar = ({ containers, onAddContainer, onRemoveContainer }) => 
                             <button
                                 className="remove-container-btn"
                                 onClick={() => onRemoveContainer(container.id)}
-                                title="Remove container"
+                                title="Remove"
                             >
                                 &times;
                             </button>
@@ -69,7 +71,7 @@ const ContainerSidebar = ({ containers, onAddContainer, onRemoveContainer }) => 
             </div>
 
             <div className="sidebar-help">
-                <p>Drag containers onto the heatmap to place them.</p>
+                <p>Drag solutions onto the heatmap to place them.</p>
             </div>
         </div>
     );

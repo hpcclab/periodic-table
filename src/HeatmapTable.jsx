@@ -6,7 +6,6 @@ const STORAGE_KEY = 'heatmap-containers';
 
 const HeatmapTable = () => {
     const [selectedMetric, setSelectedMetric] = useState('Latency');
-    const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, content: '' });
     const [showGridLines, setShowGridLines] = useState(true);
     const [containers, setContainers] = useState(() => {
         const saved = localStorage.getItem(STORAGE_KEY);
@@ -219,21 +218,31 @@ const HeatmapTable = () => {
     const metrics = Object.keys(metricsData);
 
     // Get RGB color values based on intensity (0-100)
+    // Blue (low) → Purple (mid) → Red (high)
     const getHeatmapRGB = (value) => {
         const intensity = value / 100;
 
-        if (intensity < 0.25) {
-            const t = intensity / 0.25;
-            return [Math.round(15 + 20 * t), Math.round(25 + 35 * t), Math.round(60 + 40 * t)];
-        } else if (intensity < 0.5) {
-            const t = (intensity - 0.25) / 0.25;
-            return [Math.round(35 + 15 * t), Math.round(60 + 60 * t), Math.round(100 + 30 * t)];
-        } else if (intensity < 0.75) {
-            const t = (intensity - 0.5) / 0.25;
-            return [Math.round(50 + 30 * t), Math.round(120 + 50 * t), Math.round(130 + 30 * t)];
+        // Color stops: Blue → Purple → Red
+        // Blue:   (30, 80, 200)
+        // Purple: (150, 50, 180)
+        // Red:    (220, 40, 40)
+
+        if (intensity < 0.5) {
+            // Blue to Purple
+            const t = intensity / 0.5;
+            return [
+                Math.round(30 + 120 * t),   // 30 → 150
+                Math.round(80 - 30 * t),    // 80 → 50
+                Math.round(200 - 20 * t)    // 200 → 180
+            ];
         } else {
-            const t = (intensity - 0.75) / 0.25;
-            return [Math.round(80 + 75 * t), Math.round(170 + 45 * t), Math.round(160 - 10 * t)];
+            // Purple to Red
+            const t = (intensity - 0.5) / 0.5;
+            return [
+                Math.round(150 + 70 * t),   // 150 → 220
+                Math.round(50 - 10 * t),    // 50 → 40
+                Math.round(180 - 140 * t)   // 180 → 40
+            ];
         }
     };
 
@@ -341,13 +350,19 @@ const HeatmapTable = () => {
         const containerId = e.dataTransfer.getData('containerId');
         if (!containerId || !dataAreaRef.current) return;
 
+        const container = containers.find(c => c.id === containerId);
+        const width = container?.width || 0.15;
+        const height = container?.height || 0.2;
+
         const rect = dataAreaRef.current.getBoundingClientRect();
         const x = (e.clientX - rect.left) / rect.width;
         const y = (e.clientY - rect.top) / rect.height;
 
-        // Clamp to 0-1 range
-        const clampedX = Math.max(0, Math.min(1, x));
-        const clampedY = Math.max(0, Math.min(1, y));
+        // Clamp position so container stays within grid (accounting for container size)
+        const halfWidth = width / 2;
+        const halfHeight = height / 2;
+        const clampedX = Math.max(halfWidth, Math.min(1 - halfWidth, x));
+        const clampedY = Math.max(halfHeight, Math.min(1 - halfHeight, y));
 
         setContainers(prev =>
             prev.map(c =>
@@ -358,16 +373,99 @@ const HeatmapTable = () => {
         );
     };
 
-    // Calculate container value and color based on position and selected metric
+    // Calculate average container value across its entire coverage area
     const getContainerValue = (container) => {
         if (container.x === null || container.y === null) return null;
 
         const metricData = metricsData[selectedMetric];
         if (!metricData) return null;
 
-        const gridX = container.x * (COLS - 1);
-        const gridY = container.y * (ROWS - 1);
-        return bilinearInterpolate(metricData, gridX, gridY);
+        const width = container.width || 0.15;
+        const height = container.height || 0.2;
+
+        // Calculate bounds (container position is center)
+        const left = Math.max(0, container.x - width / 2);
+        const right = Math.min(1, container.x + width / 2);
+        const top = Math.max(0, container.y - height / 2);
+        const bottom = Math.min(1, container.y + height / 2);
+
+        // Sample points across the container area for average calculation
+        const samplesX = 5;
+        const samplesY = 5;
+        let total = 0;
+        let count = 0;
+
+        for (let i = 0; i < samplesX; i++) {
+            for (let j = 0; j < samplesY; j++) {
+                const sampleX = left + (right - left) * (i / (samplesX - 1));
+                const sampleY = top + (bottom - top) * (j / (samplesY - 1));
+
+                const gridX = sampleX * (COLS - 1);
+                const gridY = sampleY * (ROWS - 1);
+
+                total += bilinearInterpolate(metricData, gridX, gridY);
+                count++;
+            }
+        }
+
+        return count > 0 ? total / count : 0;
+    };
+
+    // Handle container resize
+    // Minimum sizes to ensure text visibility (as percentage of data area)
+    const MIN_WIDTH = 0.12;  // 12% minimum width
+    const MIN_HEIGHT = 0.15; // 15% minimum height
+
+    const handleResizeStart = (e, containerId, direction) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const container = containers.find(c => c.id === containerId);
+        if (!container || !dataAreaRef.current) return;
+
+        const rect = dataAreaRef.current.getBoundingClientRect();
+        const startWidth = container.width || 0.15;
+        const startHeight = container.height || 0.2;
+        const containerX = container.x;
+        const containerY = container.y;
+
+        const handleMouseMove = (moveEvent) => {
+            const deltaX = (moveEvent.clientX - startX) / rect.width;
+            const deltaY = (moveEvent.clientY - startY) / rect.height;
+
+            setContainers(prev =>
+                prev.map(c => {
+                    if (c.id !== containerId) return c;
+
+                    let newWidth = startWidth;
+                    let newHeight = startHeight;
+
+                    if (direction.includes('e')) newWidth = Math.max(MIN_WIDTH, startWidth + deltaX * 2);
+                    if (direction.includes('w')) newWidth = Math.max(MIN_WIDTH, startWidth - deltaX * 2);
+                    if (direction.includes('s')) newHeight = Math.max(MIN_HEIGHT, startHeight + deltaY * 2);
+                    if (direction.includes('n')) newHeight = Math.max(MIN_HEIGHT, startHeight - deltaY * 2);
+
+                    // Constrain so container stays within grid boundaries
+                    // Container position is center, so check if edges would go outside
+                    const maxWidth = Math.min(containerX * 2, (1 - containerX) * 2);
+                    const maxHeight = Math.min(containerY * 2, (1 - containerY) * 2);
+                    newWidth = Math.min(newWidth, maxWidth);
+                    newHeight = Math.min(newHeight, maxHeight);
+
+                    return { ...c, width: newWidth, height: newHeight };
+                })
+            );
+        };
+
+        const handleMouseUp = () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
     };
 
     return (
@@ -432,18 +530,6 @@ const HeatmapTable = () => {
                                                 <div
                                                     key={`${lvl.id}-${tier.id}`}
                                                     className="data-cell"
-                                                    onMouseEnter={(e) => {
-                                                        const rect = e.currentTarget.getBoundingClientRect();
-                                                        setTooltip({
-                                                            visible: true,
-                                                            x: rect.left + rect.width / 2,
-                                                            y: rect.top - 10,
-                                                            content: `${tier.name} - ${lvl.name}`
-                                                        });
-                                                    }}
-                                                    onMouseLeave={() => {
-                                                        setTooltip({ visible: false, x: 0, y: 0, content: '' });
-                                                    }}
                                                 />
                                             ))
                                         ))}
@@ -453,13 +539,17 @@ const HeatmapTable = () => {
                                         .filter(c => c.x !== null && c.y !== null)
                                         .map(container => {
                                             const value = getContainerValue(container);
+                                            const width = container.width || 0.15;
+                                            const height = container.height || 0.2;
                                             return (
                                                 <div
                                                     key={container.id}
-                                                    className="placed-container"
+                                                    className="placed-container resizable"
                                                     style={{
                                                         left: `${container.x * 100}%`,
-                                                        top: `${container.y * 100}%`
+                                                        top: `${container.y * 100}%`,
+                                                        width: `${width * 100}%`,
+                                                        height: `${height * 100}%`
                                                     }}
                                                     draggable="true"
                                                     onDragStart={(e) => {
@@ -467,13 +557,24 @@ const HeatmapTable = () => {
                                                         e.dataTransfer.effectAllowed = 'move';
                                                     }}
                                                 >
-                                                    <span className="placed-container-name">{container.name}</span>
-                                                    <div className="container-gradient-bar">
-                                                        <div
-                                                            className="container-gradient-indicator"
-                                                            style={{ left: `${value}%` }}
-                                                        />
+                                                    <div className="container-content">
+                                                        <span className="placed-container-name">{container.name}</span>
+                                                        <div className="container-gradient-bar">
+                                                            <div
+                                                                className="container-gradient-indicator"
+                                                                style={{ left: `${value}%` }}
+                                                            />
+                                                        </div>
                                                     </div>
+                                                    {/* Resize handles */}
+                                                    <div className="resize-handle resize-n" onMouseDown={(e) => handleResizeStart(e, container.id, 'n')} />
+                                                    <div className="resize-handle resize-s" onMouseDown={(e) => handleResizeStart(e, container.id, 's')} />
+                                                    <div className="resize-handle resize-e" onMouseDown={(e) => handleResizeStart(e, container.id, 'e')} />
+                                                    <div className="resize-handle resize-w" onMouseDown={(e) => handleResizeStart(e, container.id, 'w')} />
+                                                    <div className="resize-handle resize-ne" onMouseDown={(e) => handleResizeStart(e, container.id, 'ne')} />
+                                                    <div className="resize-handle resize-nw" onMouseDown={(e) => handleResizeStart(e, container.id, 'nw')} />
+                                                    <div className="resize-handle resize-se" onMouseDown={(e) => handleResizeStart(e, container.id, 'se')} />
+                                                    <div className="resize-handle resize-sw" onMouseDown={(e) => handleResizeStart(e, container.id, 'sw')} />
                                                 </div>
                                             );
                                         })
@@ -514,18 +615,6 @@ const HeatmapTable = () => {
             <footer className="footer">
                 <p>&copy; {new Date().getFullYear()} All rights reserved.</p>
             </footer>
-
-            {tooltip.visible && (
-                <div
-                    className="custom-tooltip"
-                    style={{
-                        left: `${tooltip.x}px`,
-                        top: `${tooltip.y}px`
-                    }}
-                >
-                    <div className="tooltip-location">{tooltip.content}</div>
-                </div>
-            )}
             </div>
         </div>
     );
