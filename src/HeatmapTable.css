@@ -49,10 +49,30 @@
     gap: 1rem;
 }
 
-.metric-selector label {
+.metric-selector > label,
+.metric-dropdown-wrapper > label {
     font-size: 0.9rem;
     font-weight: 500;
     color: #b0b0c0;
+}
+
+.metric-dropdown-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.metric-dropdown-wrapper > label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.metric-definition {
+    font-size: 0.75rem;
+    color: #808090;
+    font-style: italic;
 }
 
 .metric-dropdown {

@@ -215,6 +215,23 @@ const HeatmapTable = () => {
         ]
     };
 
+    const metricDefinitions = {
+        'Latency': 'Response time delay',
+        'Throughput': 'Data processing capacity',
+        'Availability': 'Uptime and accessibility',
+        'Infrastructure Cost': 'Hardware and setup expenses',
+        'Operational Cost': 'Ongoing running expenses',
+        'Elasticity': 'Ability to scale resources',
+        'Reliability': 'Consistent performance',
+        'Mobility': 'Physical portability',
+        'Distributedness': 'Geographic spread of resources',
+        'Democratization (Ease of use & Programming)': 'Accessibility for developers',
+        'Governance': 'Policy and compliance control',
+        'AI-Native': 'AI/ML integration readiness',
+        'Sustainability': 'Environmental efficiency',
+        'Security & Trustworthiness': 'Protection and trust level'
+    };
+
     const metrics = Object.keys(metricsData);
 
     // Get RGB color values based on intensity (0-100)
@@ -480,19 +497,22 @@ const HeatmapTable = () => {
                     <h1 className="title">The Hitchhiker's Guide to Computing</h1>
 
                 <div className="metric-selector">
-                    <label htmlFor="metric-dropdown">Select Metric:</label>
-                    <select
-                        id="metric-dropdown"
-                        value={selectedMetric}
-                        onChange={(e) => setSelectedMetric(e.target.value)}
-                        className="metric-dropdown"
-                    >
-                        {metrics.map((metric) => (
-                            <option key={metric} value={metric}>
-                                {metric}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="metric-dropdown-wrapper">
+                        <label htmlFor="metric-dropdown">Select Metric:</label>
+                        <select
+                            id="metric-dropdown"
+                            value={selectedMetric}
+                            onChange={(e) => setSelectedMetric(e.target.value)}
+                            className="metric-dropdown"
+                        >
+                            {metrics.map((metric) => (
+                                <option key={metric} value={metric}>
+                                    {metric}
+                                </option>
+                            ))}
+                        </select>
+                        <span className="metric-definition">{metricDefinitions[selectedMetric]}</span>
+                    </div>
                     <label className="grid-toggle">
                         <input
                             type="checkbox"
