@@ -75,6 +75,17 @@
     font-style: italic;
 }
 
+.trend-uncertain-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #d0d0dc;
+    background: rgba(120, 122, 132, 0.35);
+    border: 1px solid rgba(160, 162, 175, 0.5);
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+}
+
 .metric-dropdown {
     padding: 0.6rem 1.2rem;
     font-size: 0.9rem;
@@ -140,7 +151,7 @@
 /* Main Grid Layout */
 .main-grid {
     display: grid;
-    grid-template-columns: 300px repeat(5, 150px);
+    grid-template-columns: 300px repeat(6, 150px);
     grid-template-rows: repeat(7, 60px) auto;
     background-color: #16161e;
     border-radius: 12px;
@@ -264,7 +275,7 @@
 .data-grid-overlay {
     position: relative;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     grid-template-rows: repeat(7, 1fr);
     width: 100%;
     height: 100%;
@@ -521,7 +532,7 @@
     }
 
     .main-grid {
-        grid-template-columns: 250px repeat(5, 130px);
+        grid-template-columns: 250px repeat(6, 130px);
     }
 }
 
@@ -554,7 +565,7 @@
     }
 
     .main-grid {
-        grid-template-columns: 200px repeat(5, 100px);
+        grid-template-columns: 200px repeat(6, 100px);
         grid-template-rows: repeat(7, 50px) auto;
     }
 

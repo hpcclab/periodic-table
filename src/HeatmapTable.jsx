@@ -4,6 +4,9 @@ import ContainerSidebar from './ContainerSidebar';
 
 const STORAGE_KEY = 'heatmap-containers';
 
+// Metrics whose trend is undetermined: rendered as a uniform neutral fill (no directional claim)
+const UNCERTAIN_METRICS = new Set(['Sustainability']);
+
 const HeatmapTable = () => {
     const [selectedMetric, setSelectedMetric] = useState('Responsiveness');
     const [showGridLines, setShowGridLines] = useState(true);
@@ -17,7 +20,7 @@ const HeatmapTable = () => {
     // Grid dimensions
     const CELL_WIDTH = 150;
     const CELL_HEIGHT = 60;
-    const COLS = 5;
+    const COLS = 6;
     const ROWS = 7;
 
     // Define tiers and abstraction levels
@@ -26,7 +29,8 @@ const HeatmapTable = () => {
         { id: 'T2', name: 'Edge' },
         { id: 'T3', name: 'Fog' },
         { id: 'T4', name: 'Cloud' },
-        { id: 'T5', name: 'Sky' }
+        { id: 'T5', name: 'Sky' },
+        { id: 'T6', name: 'Extra-Planetary' }
     ];
 
     const levels = [
@@ -41,211 +45,199 @@ const HeatmapTable = () => {
 
     // Metric data: each metric has values for each cell [row][col]
     // Values range from 0-100 for heatmap intensity
-    // Rows: L7-L1 (Agents to Hardware - graph style), Cols: T1-T5 (Devices to Sky)
+    // Rows: L7-L1 (Agents to Hardware - graph style), Cols: T1-T6 (Devices, Edge, Fog, Cloud, Sky=multi-cloud, Extra-Planetary=orbital)
     const metricsData = {
         // Responsiveness: Higher value = more responsive (better, lower latency)
         // Linear gradient: decreases left→right (cloud/sky less responsive due to network latency), decreases bottom→top (higher abstractions add overhead)
-        // Responsiveness decreases with both abstraction and tier (latency increases)
+        // Trend continues decreasing to Extra-Planetary (least responsive tier)
         'Responsiveness': [
-            [25, 20, 15, 10, 5],    // L7: Agents - least responsive (most layers)
-            [35, 30, 25, 20, 10],   // L6: Application
-            [45, 40, 35, 30, 15],   // L5: Programming Models
-            [55, 50, 45, 40, 20],   // L4: Runtime
-            [65, 60, 55, 50, 25],   // L3: Platform
-            [75, 70, 65, 60, 30],   // L2: Infrastructure
-            [85, 80, 75, 70, 35]    // L1: Hardware - most responsive (direct, minimal overhead)
+            [25, 20, 15, 10, 5, 2],     // L7: Agents - least responsive (most layers)
+            [35, 30, 25, 20, 10, 6],    // L6: Application
+            [45, 40, 35, 30, 15, 10],   // L5: Programming Models
+            [55, 50, 45, 40, 20, 14],   // L4: Runtime
+            [65, 60, 55, 50, 25, 18],   // L3: Platform
+            [75, 70, 65, 60, 30, 22],   // L2: Infrastructure
+            [85, 80, 75, 70, 35, 26]    // L1: Hardware - most responsive (direct, minimal overhead)
         ],
         // Capacity: Higher value = better capacity
         // Linear gradient: strong increase left→right (cloud capacity), constant across abstraction levels
-        // Sky can aggregate capacity from multiple clouds
+        // Trend continues increasing to Extra-Planetary (highest tier)
         'Capacity': [
-            [15, 40, 65, 90, 95],   // L7: Agents
-            [15, 40, 65, 90, 95],   // L6: Application
-            [15, 40, 65, 90, 95],   // L5: Programming Models
-            [15, 40, 65, 90, 95],   // L4: Runtime
-            [15, 40, 65, 90, 95],   // L3: Platform
-            [15, 40, 65, 90, 95],   // L2: Infrastructure
-            [15, 40, 65, 90, 95]    // L1: Hardware
+            [15, 40, 65, 90, 95, 98],   // L7: Agents
+            [15, 40, 65, 90, 95, 98],   // L6: Application
+            [15, 40, 65, 90, 95, 98],   // L5: Programming Models
+            [15, 40, 65, 90, 95, 98],   // L4: Runtime
+            [15, 40, 65, 90, 95, 98],   // L3: Platform
+            [15, 40, 65, 90, 95, 98],   // L2: Infrastructure
+            [15, 40, 65, 90, 95, 98]    // L1: Hardware
+        ],
+        // Capital Expenditure: Higher value = higher cost
+        // U-shaped left→right: high at resource-constrained Device/Edge tiers (specialized hardware),
+        // lowest at Cloud (commoditization, economies of scale), slightly above Cloud at Sky (multi-cloud overhead),
+        // rising sharply again at Extra-Planetary (launch costs, space-hardened infrastructure).
+        // Gradual increase bottom→top (more layers = more cost).
+        'Capital Expenditure': [
+            [97, 92, 60, 27, 33, 88],   // L7: + agent orchestration - most layers
+            [95, 90, 58, 25, 31, 86],   // L6: + application layer
+            [93, 88, 56, 23, 29, 84],   // L5: + frameworks
+            [91, 86, 54, 21, 27, 82],   // L4: + runtime/containers
+            [89, 84, 52, 19, 25, 80],   // L3: + platform services
+            [87, 82, 50, 17, 23, 78],   // L2: + infrastructure software
+            [85, 80, 48, 15, 21, 76]    // L1: Hardware only
+        ],
+        // Operational Expenditure: Higher value = higher cost
+        // Linear gradient: decreases left→right (across tiers) and decreases bottom→top (across abstractions)
+        // Higher abstraction (automation/managed services) and higher tiers reduce recurring operating cost
+        'Operational Expenditure': [
+            [25, 20, 15, 10, 5, 2],     // L7: Agents - lowest opex (most automated/abstracted)
+            [35, 30, 25, 20, 14, 8],    // L6: Application
+            [48, 42, 36, 29, 22, 15],   // L5: Programming Models
+            [60, 53, 46, 39, 31, 23],   // L4: Runtime
+            [72, 65, 57, 49, 41, 33],   // L3: Platform
+            [84, 76, 67, 58, 49, 41],   // L2: Infrastructure
+            [95, 86, 76, 66, 56, 47]    // L1: Hardware - highest opex (manual, no automation)
+        ],
+        // Scalability: Higher value = better scalability
+        // Linear gradient: strong increase left→right (cloud scaling); constant across abstraction levels
+        // Trend continues increasing to Extra-Planetary
+        'Scalability': [
+            [17, 37, 57, 77, 91, 93],   // L7: Agents
+            [17, 37, 57, 77, 91, 93],   // L6: Application
+            [17, 37, 57, 77, 91, 93],   // L5: Programming Models
+            [17, 37, 57, 77, 91, 93],   // L4: Runtime
+            [17, 37, 57, 77, 91, 93],   // L3: Platform
+            [17, 37, 57, 77, 91, 93],   // L2: Infrastructure
+            [17, 37, 57, 77, 91, 93]    // L1: Hardware
         ],
         // Availability: Higher value = better availability
-        // Linear gradient: strong increase left→right (cloud redundancy), gradual increase bottom→top
-        // Sky provides ultimate redundancy across providers
-        'Availability': [
-            [27, 50, 74, 97, 99],   // L7: Agents - benefits from all resilience layers
-            [25, 48, 72, 95, 99],   // L6: Application
-            [23, 46, 70, 93, 99],   // L5: Programming Models
-            [21, 44, 68, 91, 99],   // L4: Runtime
-            [19, 42, 66, 89, 99],   // L3: Platform
-            [17, 40, 64, 87, 99],   // L2: Infrastructure
-            [15, 38, 62, 85, 97]    // L1: Hardware - single point of failure
-        ],
-        // Infrastructure Cost: Higher value = higher cost
-        // Linear gradient: strong decrease left→right (cloud=no upfront hardware), gradual increase bottom→top
-        // Sky increases cost (multiple providers)
-        'Infrastructure Cost': [
-            [97, 74, 50, 27, 32],   // L7: + agent orchestration - most layers
-            [95, 72, 48, 25, 30],   // L6: + application layer
-            [93, 70, 46, 23, 28],   // L5: + frameworks
-            [91, 68, 44, 21, 26],   // L4: + runtime/containers
-            [89, 66, 42, 19, 24],   // L3: + platform services
-            [87, 64, 40, 17, 22],   // L2: + infrastructure software
-            [85, 62, 38, 15, 20]    // L1: Hardware only
-        ],
-        // Operational Cost: Higher value = higher cost
-        // Linear gradient: strong increase left→right (cloud=pay-per-use fees), gradual decrease bottom→top
-        // Higher abstractions reduce operational overhead through automation
-        'Operational Cost': [
-            [15, 38, 62, 85, 97],   // L7: Lowest ops cost (highly automated, managed services)
-            [17, 40, 64, 87, 99],   // L6: Application maintenance
-            [19, 42, 66, 89, 99],   // L5: Framework updates
-            [21, 44, 68, 91, 99],   // L4: Container orchestration
-            [23, 46, 70, 93, 99],   // L3: Platform management
-            [25, 48, 72, 95, 99],   // L2: Infrastructure ops
-            [27, 50, 74, 97, 99]    // L1: Highest ops cost (manual management, no automation)
-        ],
-        // Elasticity: Higher value = better elasticity
-        // Linear gradient: strong increase left→right (cloud scaling), moderate increase bottom→top
-        // Sky provides ultimate elasticity across providers
-        'Elasticity': [
-            [29, 49, 69, 89, 99],   // L7: Agents - benefits from all scaling layers
-            [25, 45, 65, 85, 99],   // L6: Application
-            [21, 41, 61, 81, 96],   // L5: Programming Models
-            [17, 37, 57, 77, 92],   // L4: Runtime
-            [13, 33, 53, 73, 88],   // L3: Platform
-            [9, 29, 49, 69, 84],    // L2: Infrastructure
-            [5, 25, 45, 65, 80]     // L1: Hardware - almost none
-        ],
-        // Reliability: Higher value = better reliability
         // Linear gradient: increases left→right (cloud/sky have redundancy), decreases bottom→top (more layers = more failure points)
-        // Cloud tiers provide better fault tolerance and redundancy
-        'Reliability': [
-            [30, 40, 50, 60, 70],   // L7: Agents - emerging tech, but benefits from tier redundancy
-            [50, 60, 70, 80, 85],   // L6: Application
-            [55, 65, 75, 85, 90],   // L5: Programming Models
-            [60, 70, 80, 90, 92],   // L4: Runtime
-            [65, 75, 85, 92, 94],   // L3: Platform
-            [70, 80, 87, 94, 96],   // L2: Infrastructure
-            [75, 82, 89, 95, 98]    // L1: Hardware - simple and benefits greatly from cloud redundancy
+        // Trend continues increasing to Extra-Planetary
+        'Availability': [
+            [30, 40, 50, 60, 70, 75],   // L7: Agents - emerging tech, but benefits from tier redundancy
+            [50, 60, 70, 80, 85, 88],   // L6: Application
+            [55, 65, 75, 85, 90, 92],   // L5: Programming Models
+            [60, 70, 80, 90, 92, 94],   // L4: Runtime
+            [65, 75, 85, 92, 94, 96],   // L3: Platform
+            [70, 80, 87, 94, 96, 97],   // L2: Infrastructure
+            [75, 82, 89, 95, 98, 99]    // L1: Hardware - simple and benefits greatly from cloud redundancy
         ],
         // Mobility: Higher value = better mobility
-        // Linear gradient: strong decrease left→right (devices mobile, cloud fixed)
-        // Constant bottom→top (abstraction level doesn't affect physical mobility)
-        // Sky is even less mobile (tied to multiple fixed providers)
+        // Linear gradient: strong decrease left→right (devices mobile, cloud/sky fixed), constant bottom→top
+        // Trend continues decreasing to Extra-Planetary (least mobile)
         'Mobility': [
-            [95, 70, 45, 20, 10],   // L7: Agents
-            [95, 70, 45, 20, 10],   // L6: Application
-            [95, 70, 45, 20, 10],   // L5: Programming Models
-            [95, 70, 45, 20, 10],   // L4: Runtime
-            [95, 70, 45, 20, 10],   // L3: Platform
-            [95, 70, 45, 20, 10],   // L2: Infrastructure
-            [95, 70, 45, 20, 10]    // L1: Hardware
+            [95, 70, 45, 20, 10, 5],   // L7: Agents
+            [95, 70, 45, 20, 10, 5],   // L6: Application
+            [95, 70, 45, 20, 10, 5],   // L5: Programming Models
+            [95, 70, 45, 20, 10, 5],   // L4: Runtime
+            [95, 70, 45, 20, 10, 5],   // L3: Platform
+            [95, 70, 45, 20, 10, 5],   // L2: Infrastructure
+            [95, 70, 45, 20, 10, 5]    // L1: Hardware
         ],
         // Distributedness: Higher value = more distributed
-        // Linear gradient: decrease left→right (devices/edge most distributed, cloud centralized), with notable uptick at Sky
-        // Gradual increase bottom→top; Sky (multi-cloud) more distributed than single Cloud
+        // Linear gradient: decrease left→right (devices/edge most distributed, cloud centralized), uptick at Sky (multi-cloud)
+        // Sky uptick continues to Extra-Planetary (more distributed)
         'Distributedness': [
-            [99, 87, 67, 47, 57],   // L7: Agents - Sky uptick (multi-cloud distribution)
-            [99, 85, 65, 45, 55],   // L6: Application
-            [98, 83, 63, 43, 53],   // L5: Programming Models
-            [96, 81, 61, 41, 51],   // L4: Runtime
-            [94, 79, 59, 39, 49],   // L3: Platform
-            [92, 77, 57, 37, 47],   // L2: Infrastructure
-            [90, 75, 55, 35, 45]    // L1: Hardware
+            [99, 87, 67, 47, 57, 67],   // L7: Agents - Sky uptick (multi-cloud distribution)
+            [99, 85, 65, 45, 55, 65],   // L6: Application
+            [98, 83, 63, 43, 53, 63],   // L5: Programming Models
+            [96, 81, 61, 41, 51, 61],   // L4: Runtime
+            [94, 79, 59, 39, 49, 59],   // L3: Platform
+            [92, 77, 57, 37, 47, 57],   // L2: Infrastructure
+            [90, 75, 55, 35, 45, 55]    // L1: Hardware
         ],
         // Interoperability: Higher value = better interoperability
         // Linear gradient: increase left→right (cloud has standardized APIs, Sky is multicloud by design)
-        // Moderate increase bottom→top (higher abstractions have more standardized interfaces)
+        // Trend continues increasing to Extra-Planetary
         'Interoperability': [
-            [35, 52, 70, 88, 99],   // L7: Agents - standard APIs, multicloud agents
-            [32, 49, 67, 85, 99],   // L6: Application - containerized, portable apps
-            [28, 45, 63, 82, 97],   // L5: Programming Models - standard frameworks
-            [24, 41, 59, 78, 94],   // L4: Runtime - container orchestration
-            [20, 37, 55, 74, 90],   // L3: Platform - platform services
-            [16, 33, 51, 70, 86],   // L2: Infrastructure - IaC standards
-            [12, 29, 47, 66, 82]    // L1: Hardware - proprietary protocols
+            [35, 52, 70, 88, 99, 99],   // L7: Agents - standard APIs, multicloud agents
+            [32, 49, 67, 85, 99, 99],   // L6: Application - containerized, portable apps
+            [28, 45, 63, 82, 97, 99],   // L5: Programming Models - standard frameworks
+            [24, 41, 59, 78, 94, 97],   // L4: Runtime - container orchestration
+            [20, 37, 55, 74, 90, 93],   // L3: Platform - platform services
+            [16, 33, 51, 70, 86, 90],   // L2: Infrastructure - IaC standards
+            [12, 29, 47, 66, 82, 86]    // L1: Hardware - proprietary protocols
         ],
         // Democratization: Higher value = easier to use
-        // Primarily vertical - strong increase with abstraction (bottom→top)
-        // Sky adds complexity (multicloud management)
+        // Primarily vertical - strong increase with abstraction (bottom→top); Sky adds complexity (multicloud management)
+        // Sky complexity dip continues to Extra-Planetary
         'Democratization (Ease of use & Programming)': [
-            [92, 95, 97, 99, 95],   // L7: Agents - natural language peak
-            [75, 82, 88, 92, 88],   // L6: Application - low-code
-            [55, 65, 75, 82, 78],   // L5: Programming Models
-            [38, 48, 58, 68, 62],   // L4: Runtime
-            [25, 35, 45, 55, 48],   // L3: Platform
-            [12, 18, 25, 32, 26],   // L2: Infrastructure
-            [5, 8, 12, 18, 12]      // L1: Hardware - very difficult
+            [92, 95, 97, 99, 95, 90],   // L7: Agents - natural language peak
+            [75, 82, 88, 92, 88, 82],   // L6: Application - low-code
+            [55, 65, 75, 82, 78, 72],   // L5: Programming Models
+            [38, 48, 58, 68, 62, 56],   // L4: Runtime
+            [25, 35, 45, 55, 48, 42],   // L3: Platform
+            [12, 18, 25, 32, 26, 20],   // L2: Infrastructure
+            [5, 8, 12, 18, 12, 7]       // L1: Hardware - very difficult
         ],
         // Controllability: Higher value = more controllable
         // Linear gradient: decreases left→right (cloud/sky less controllable), decreases bottom→top (higher abstractions reduce direct control)
-        // Controllability decreases with both abstraction and tier
+        // Trend continues decreasing to Extra-Planetary (least controllable)
         'Controllability': [
-            [25, 20, 15, 10,  5],   // L7: Agents - least controllable (most abstracted)
-            [35, 30, 25, 20, 15],   // L6: Application
-            [50, 43, 36, 29, 22],   // L5: Programming Models
-            [60, 53, 46, 39, 32],   // L4: Runtime
-            [70, 63, 56, 49, 42],   // L3: Platform
-            [82, 75, 65, 58, 50],   // L2: Infrastructure
-            [95, 85, 75, 65, 55]    // L1: Hardware - most controllable (direct control)
+            [25, 20, 15, 10,  5, 3],    // L7: Agents - least controllable (most abstracted)
+            [35, 30, 25, 20, 15, 10],   // L6: Application
+            [50, 43, 36, 29, 22, 16],   // L5: Programming Models
+            [60, 53, 46, 39, 32, 25],   // L4: Runtime
+            [70, 63, 56, 49, 42, 34],   // L3: Platform
+            [82, 75, 65, 58, 50, 42],   // L2: Infrastructure
+            [95, 85, 75, 65, 55, 47]    // L1: Hardware - most controllable (direct control)
         ],
         // AI-Native: Higher value = more AI-native
         // Linear gradient: increase left→right (cloud has AI infrastructure), increase bottom→top
-        // Sky can leverage best AI from each provider
+        // Trend continues increasing to Extra-Planetary
         'AI-Native': [
-            [47, 64, 80, 97, 99],   // L7: Agents - most AI-friendly
-            [40, 57, 73, 90, 99],   // L6: Application
-            [33, 50, 66, 83, 93],   // L5: Programming Models
-            [26, 43, 59, 76, 86],   // L4: Runtime
-            [19, 36, 52, 69, 79],   // L3: Platform
-            [12, 29, 45, 62, 72],   // L2: Infrastructure
-            [5, 22, 38, 55, 65]     // L1: Hardware
+            [47, 64, 80, 97, 99, 99],   // L7: Agents - most AI-friendly
+            [40, 57, 73, 90, 99, 99],   // L6: Application
+            [33, 50, 66, 83, 93, 96],   // L5: Programming Models
+            [26, 43, 59, 76, 86, 90],   // L4: Runtime
+            [19, 36, 52, 69, 79, 84],   // L3: Platform
+            [12, 29, 45, 62, 72, 78],   // L2: Infrastructure
+            [5, 22, 38, 55, 65, 72]     // L1: Hardware
         ],
         // AI-Support: Higher value = better AI workload support
         // Linear gradient: increase left→right (cloud has GPUs, TPUs, ML services), increase bottom→top
-        // Sky can leverage AI infrastructure from multiple providers
+        // Trend continues increasing to Extra-Planetary
         'AI-Support': [
-            [42, 59, 76, 93, 99],   // L7: Agents - best AI framework support
-            [38, 55, 72, 89, 97],   // L6: Application
-            [34, 51, 68, 85, 94],   // L5: Programming Models
-            [30, 47, 64, 81, 90],   // L4: Runtime
-            [26, 43, 60, 77, 86],   // L3: Platform
-            [22, 39, 56, 73, 82],   // L2: Infrastructure
-            [18, 35, 52, 69, 78]    // L1: Hardware - raw compute, less AI optimization
+            [42, 59, 76, 93, 99, 99],   // L7: Agents - best AI framework support
+            [38, 55, 72, 89, 97, 99],   // L6: Application
+            [34, 51, 68, 85, 94, 97],   // L5: Programming Models
+            [30, 47, 64, 81, 90, 94],   // L4: Runtime
+            [26, 43, 60, 77, 86, 90],   // L3: Platform
+            [22, 39, 56, 73, 82, 86],   // L2: Infrastructure
+            [18, 35, 52, 69, 78, 82]    // L1: Hardware - raw compute, less AI optimization
         ],
         // Sustainability: Higher value = more sustainable
-        // Linear gradient: constant left→right, gradual increase bottom→top
-        // More layers = more compute/resources = less sustainable
+        // Trend is undetermined in both directions (across tiers and abstractions).
+        // Rendered as a uniform neutral fill (see UNCERTAIN_METRICS); values kept flat so no trend is implied.
         'Sustainability': [
-            [38, 38, 38, 38, 38],   // L7: Agents - AI workloads intensive
-            [45, 45, 45, 45, 45],   // L6: Application
-            [52, 52, 52, 52, 52],   // L5: Programming Models
-            [59, 59, 59, 59, 59],   // L4: Runtime
-            [66, 66, 66, 66, 66],   // L3: Platform
-            [73, 73, 73, 73, 73],   // L2: Infrastructure
-            [80, 80, 80, 80, 80]    // L1: Hardware - simple, efficient
+            [50, 50, 50, 50, 50, 50],   // L7: Agents
+            [50, 50, 50, 50, 50, 50],   // L6: Application
+            [50, 50, 50, 50, 50, 50],   // L5: Programming Models
+            [50, 50, 50, 50, 50, 50],   // L4: Runtime
+            [50, 50, 50, 50, 50, 50],   // L3: Platform
+            [50, 50, 50, 50, 50, 50],   // L2: Infrastructure
+            [50, 50, 50, 50, 50, 50]    // L1: Hardware
         ],
         // Security & Trustworthiness: Higher value = better security
-        // Linear gradient: constant left→right, gradual increase bottom→top
-        // More layers = more attack surface = less secure
+        // Linear gradient: constant left→right, gradual increase bottom→top (more layers = more attack surface)
+        // Constant left→right continues at Extra-Planetary
         'Security & Trustworthiness': [
-            [42, 42, 42, 42, 42],   // L7: Agents - emerging risks (prompt injection)
-            [50, 50, 50, 50, 50],   // L6: Application
-            [58, 58, 58, 58, 58],   // L5: Programming Models
-            [66, 66, 66, 66, 66],   // L4: Runtime
-            [74, 74, 74, 74, 74],   // L3: Platform
-            [82, 82, 82, 82, 82],   // L2: Infrastructure
-            [90, 90, 90, 90, 90]    // L1: Hardware - physical control, simple
+            [42, 42, 42, 42, 42, 42],   // L7: Agents - emerging risks (prompt injection)
+            [50, 50, 50, 50, 50, 50],   // L6: Application
+            [58, 58, 58, 58, 58, 58],   // L5: Programming Models
+            [66, 66, 66, 66, 66, 66],   // L4: Runtime
+            [74, 74, 74, 74, 74, 74],   // L3: Platform
+            [82, 82, 82, 82, 82, 82],   // L2: Infrastructure
+            [90, 90, 90, 90, 90, 90]    // L1: Hardware - physical control, simple
         ]
     };
 
     const metricDefinitions = {
         'Responsiveness': 'How quickly a solution processes and returns responses to user/client requests.',
         'Capacity': 'How much computational power a solution provides in terms of processing, memory, storage, and network.',
-        'Availability': 'The proportion of time a distributed system remains operational and accessible, typically expressed as uptime percentage or "nines" of availability.',
-        'Infrastructure Cost': 'The total software & hardware expenses to develop and establish a solution.',
-        'Operational Cost': 'The total economic expense to operate and run a solution.',
-        'Elasticity': 'The ability of a solution to adapt its resource allocation to load changes to maintain performance objectives.',
-        'Reliability': 'The ability of a solution to provide correct and dependable services over time.',
+        'Capital Expenditure': 'The total fixed expenditure to develop and establish a solution, including hardware procurement and software licensing.',
+        'Operational Expenditure': 'The total recurring expenditure to operate and maintain a solution, including energy, labor, and licensing fees.',
+        'Scalability': 'The ability of a solution to increase its resource allocation to handle growing workloads while maintaining performance objectives.',
+        'Availability': 'The proportion of time a solution remains operational and accessible, accounting for both failure frequency and recovery time.',
         'Mobility': 'The ability of a solution to work on mobile compute resources (e.g., smartphones or vehicular nodes) while maintaining uninterrupted services.',
         'Distributedness': 'The extent to which computation, data, and control are spread across multiple, geographically or logically distinct nodes.',
         'Interoperability': 'The ability of a solution to operate across platforms, technologies, and administrative domains.',
@@ -253,7 +245,7 @@ const HeatmapTable = () => {
         'Controllability': 'The degree to which developers or users can directly configure, manage, and influence infrastructure behavior and execution decisions.',
         'AI-Native': 'AI-optimized solutions where AI is fundamentally integrated into the system\'s design and operation.',
         'AI-Support': 'The solution is built to efficiently support AI workloads.',
-        'Sustainability': 'The ability of a solution to minimize environmental impact while remaining effective over time.',
+        'Sustainability': 'The degree to which a solution minimizes its environmental impact across its full lifecycle, including operational energy consumption, embodied carbon, carbon emissions, water usage, and e-waste.',
         'Security & Trustworthiness': 'The ability of a solution to protect data, operations, and users against threats while ensuring integrity, confidentiality, and trustworthy behavior.'
     };
 
@@ -330,6 +322,13 @@ const HeatmapTable = () => {
 
         canvas.width = width;
         canvas.height = height;
+
+        // Undetermined-trend metrics render as a uniform neutral fill (no gradient, no directional claim)
+        if (UNCERTAIN_METRICS.has(selectedMetric)) {
+            ctx.fillStyle = 'rgb(120, 122, 132)';
+            ctx.fillRect(0, 0, width, height);
+            return;
+        }
 
         // Find min and max values in current data to normalize to full range
         let minVal = Infinity;
@@ -536,6 +535,9 @@ const HeatmapTable = () => {
                                 </option>
                             ))}
                         </select>
+                        {UNCERTAIN_METRICS.has(selectedMetric) && (
+                            <span className="trend-uncertain-badge">Trend: uncertain</span>
+                        )}
                         <span className="metric-definition">{metricDefinitions[selectedMetric]}</span>
                     </div>
                     <label className="grid-toggle">
