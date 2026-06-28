@@ -4,9 +4,6 @@ import ContainerSidebar from './ContainerSidebar';
 
 const STORAGE_KEY = 'heatmap-containers';
 
-// Metrics whose trend is undetermined: rendered as a uniform neutral fill (no directional claim)
-const UNCERTAIN_METRICS = new Set(['Sustainability']);
-
 const HeatmapTable = () => {
     const [selectedMetric, setSelectedMetric] = useState('Responsiveness');
     const [showGridLines, setShowGridLines] = useState(true);
@@ -110,16 +107,16 @@ const HeatmapTable = () => {
             [17, 37, 57, 77, 91, 93]    // L1: Hardware
         ],
         // Availability: Higher value = better availability
-        // Linear gradient: increases left→right (cloud/sky have redundancy), decreases bottom→top (more layers = more failure points)
+        // Linear gradient: increases left→right (cloud/sky have redundancy); constant across abstraction levels
         // Trend continues increasing to Extra-Planetary
         'Availability': [
-            [30, 40, 50, 60, 70, 75],   // L7: Agents - emerging tech, but benefits from tier redundancy
-            [50, 60, 70, 80, 85, 88],   // L6: Application
-            [55, 65, 75, 85, 90, 92],   // L5: Programming Models
-            [60, 70, 80, 90, 92, 94],   // L4: Runtime
-            [65, 75, 85, 92, 94, 96],   // L3: Platform
-            [70, 80, 87, 94, 96, 97],   // L2: Infrastructure
-            [75, 82, 89, 95, 98, 99]    // L1: Hardware - simple and benefits greatly from cloud redundancy
+            [58, 67, 77, 85, 89, 92],   // L7: Agents
+            [58, 67, 77, 85, 89, 92],   // L6: Application
+            [58, 67, 77, 85, 89, 92],   // L5: Programming Models
+            [58, 67, 77, 85, 89, 92],   // L4: Runtime
+            [58, 67, 77, 85, 89, 92],   // L3: Platform
+            [58, 67, 77, 85, 89, 92],   // L2: Infrastructure
+            [58, 67, 77, 85, 89, 92]    // L1: Hardware
         ],
         // Mobility: Higher value = better mobility
         // Linear gradient: strong decrease left→right (devices mobile, cloud/sky fixed), constant bottom→top
@@ -205,17 +202,18 @@ const HeatmapTable = () => {
             [22, 39, 56, 73, 82, 86],   // L2: Infrastructure
             [18, 35, 52, 69, 78, 82]    // L1: Hardware - raw compute, less AI optimization
         ],
-        // Sustainability: Higher value = more sustainable
-        // Trend is undetermined in both directions (across tiers and abstractions).
-        // Rendered as a uniform neutral fill (see UNCERTAIN_METRICS); values kept flat so no trend is implied.
+        // Sustainability: Higher value = more sustainable (less lifecycle environmental impact)
+        // Tiers: rise to a peak at Cloud (hyperscale efficiency, high utilization, renewable PPAs),
+        // Sky just below (multi-cloud replication/egress overhead), sharp drop at Extra-Planetary (launch carbon + orbital e-waste)
+        // Abstractions: decrease bottom→top (each layer adds compute overhead; AI agents most energy-intensive)
         'Sustainability': [
-            [50, 50, 50, 50, 50, 50],   // L7: Agents
-            [50, 50, 50, 50, 50, 50],   // L6: Application
-            [50, 50, 50, 50, 50, 50],   // L5: Programming Models
-            [50, 50, 50, 50, 50, 50],   // L4: Runtime
-            [50, 50, 50, 50, 50, 50],   // L3: Platform
-            [50, 50, 50, 50, 50, 50],   // L2: Infrastructure
-            [50, 50, 50, 50, 50, 50]    // L1: Hardware
+            [20, 30, 40, 55, 47, 5],    // L7: Agents - AI workloads most energy-intensive
+            [26, 36, 46, 61, 53, 11],   // L6: Application
+            [31, 41, 51, 66, 58, 16],   // L5: Programming Models
+            [35, 45, 55, 70, 62, 20],   // L4: Runtime
+            [39, 49, 59, 74, 66, 24],   // L3: Platform
+            [42, 52, 62, 77, 69, 27],   // L2: Infrastructure
+            [45, 55, 65, 80, 72, 30]    // L1: Hardware - leanest per unit work
         ],
         // Security & Trustworthiness: Higher value = better security
         // Linear gradient: constant left→right, gradual increase bottom→top (more layers = more attack surface)
@@ -322,13 +320,6 @@ const HeatmapTable = () => {
 
         canvas.width = width;
         canvas.height = height;
-
-        // Undetermined-trend metrics render as a uniform neutral fill (no gradient, no directional claim)
-        if (UNCERTAIN_METRICS.has(selectedMetric)) {
-            ctx.fillStyle = 'rgb(120, 122, 132)';
-            ctx.fillRect(0, 0, width, height);
-            return;
-        }
 
         // Find min and max values in current data to normalize to full range
         let minVal = Infinity;
@@ -535,9 +526,6 @@ const HeatmapTable = () => {
                                 </option>
                             ))}
                         </select>
-                        {UNCERTAIN_METRICS.has(selectedMetric) && (
-                            <span className="trend-uncertain-badge">Trend: uncertain</span>
-                        )}
                         <span className="metric-definition">{metricDefinitions[selectedMetric]}</span>
                     </div>
                     <label className="grid-toggle">
